@@ -117,7 +117,7 @@ Overlap adds about 5% to that.
 ## As a Claude Code plugin
 
 ```
-/plugin marketplace add delfinadap/yt-transcript
+/plugin marketplace add ykdojo/yt-transcript
 /plugin install yt-transcript
 ```
 

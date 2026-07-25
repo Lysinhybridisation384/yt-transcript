@@ -5,7 +5,7 @@
   "author": {
     "name": "YK Sugi"
   },
-  "repository": "https://github.com/delfinadap/yt-transcript",
+  "repository": "https://github.com/ykdojo/yt-transcript",
   "license": "MIT",
   "keywords": ["transcript", "youtube", "asr", "parakeet", "whisper", "speech-to-text"]
 }
