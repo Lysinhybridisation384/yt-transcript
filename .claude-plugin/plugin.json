@@ -1,0 +1,11 @@
+{
+  "name": "yt-transcript",
+  "description": "Get a plain-text transcript for any video URL: YouTube captions when they exist, fast local Parakeet TDT transcription when they don't",
+  "version": "0.1.0",
+  "author": {
+    "name": "YK Sugi"
+  },
+  "repository": "https://github.com/delfinadap/yt-transcript",
+  "license": "MIT",
+  "keywords": ["transcript", "youtube", "asr", "parakeet", "whisper", "speech-to-text"]
+}
