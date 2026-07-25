@@ -119,7 +119,12 @@ fi
 
 ffmpeg -i "$SRC" -ar 16000 -ac 1 -c:a pcm_s16le "$WORK/a.wav" -y >/dev/null 2>&1
 
-DUR="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WORK/a.wav" | cut -d. -f1)"
+# Round up, never down. The loop below stops once the tail is short enough to be
+# already covered, and it tests that against DUR. Truncating instead would make
+# DUR land exactly on a chunk end whenever the real duration has a fraction, and
+# the loop would stop with up to a second of speech still untranscribed.
+DUR="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WORK/a.wav" \
+       | awk '{printf "%d", ($1 == int($1)) ? $1 : int($1) + 1}')"
 echo "==> ${DUR}s of audio (~$((DUR * 20 / 100))s expected)" >&2
 
 # Always chunk: it costs nothing on short files and is required past ~400s.
