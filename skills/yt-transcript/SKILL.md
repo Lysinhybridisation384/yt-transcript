@@ -29,6 +29,13 @@ Important notes:
   transcribing.
 - The transcript has no speaker labels and no timestamps. For a multi-speaker video,
   attribute quotes only when context makes the speaker unambiguous.
+- **Locally transcribed output contains deliberate repeats.** Chunks overlap, and
+  each seam is marked with a line like `[overlap: the following ~15s of speech
+  repeats the end of the previous section]`. Read the span after that marker as the
+  same speech as the end of the section before it, not as the speaker saying
+  something twice. Ignore the duplicate when summarizing, and never quote a passage
+  twice because it appeared on both sides of a seam. Caption-based transcripts have
+  no such markers.
 - ASR makes proper-noun errors. Treat unfamiliar names as suspect, and prefer names
   that appear consistently across the transcript over one-off spellings.
 

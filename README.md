@@ -53,6 +53,30 @@ So the script always splits into 300s chunks. If you use `parakeet-cli` directly
 chunk it yourself and check that every chunk produced text. An exit code of 0 does
 not mean it worked.
 
+## Overlapping chunks
+
+Chunks overlap by 15s, so consecutive chunks run 0-300s, 285-585s, 570-870s, and so
+on. A hard cut lands mid-word and both halves transcribe to garbage, quietly losing
+a word at every seam. With overlap, every word appears intact, with context on both
+sides, in at least one chunk.
+
+The repeated span is **left in the output**, marked with a line like:
+
+```
+[overlap: the following ~15s of speech repeats the end of the previous section]
+```
+
+It is not stitched out. `-otxt` gives plain text with no timestamps to align on, so
+de-duplication would be a fuzzy suffix/prefix match, and when that misfires it drops
+a whole sentence instead of one word. Leaving a labelled repeat is the safer failure
+mode when the consumer is an LLM. Two consequences worth knowing:
+
+- Word counts run ~5% above the true spoken count, which matters if you check a
+  transcript against the usual 130-160 words per minute.
+- If you need a clean transcript for a human, strip the marked spans yourself.
+
+Set `OVERLAP_SECS=0` to get the old back-to-back behaviour.
+
 ## Setup
 
 ```bash
@@ -84,9 +108,11 @@ transcript.sh "https://youtu.be/..." -o transcript.txt         # to a file
 ```
 
 Environment overrides: `PARAKEET_MODEL`, `THREADS` (default 8),
-`CHUNK_SECS` (default 300; raising it is not recommended, see above).
+`CHUNK_SECS` (default 300; raising it is not recommended, see above),
+`OVERLAP_SECS` (default 15; must be less than `CHUNK_SECS`).
 
 Expect roughly 1 minute of compute per 5 minutes of audio when captions are absent.
+Overlap adds about 5% to that.
 
 ## As a Claude Code plugin
 

@@ -16,6 +16,15 @@ THREADS="${THREADS:-8}"
 # produced an empty transcript. 300s stays safely inside the window.
 CHUNK_SECS="${CHUNK_SECS:-300}"
 
+# Chunks overlap. A hard cut lands mid-word, and the two halves each transcribe
+# to garbage, so a word is quietly lost at every seam. With overlap, every word
+# appears intact -- with context on both sides -- in at least one chunk. The
+# duplicated span is left in the output and labelled rather than stitched out:
+# there are no timestamps to align on, so de-duplication would be a fuzzy text
+# match, and when that misfires it drops a whole sentence instead of one word.
+# The consumer here is a model, which handles a marked repeat trivially.
+OVERLAP_SECS="${OVERLAP_SECS:-15}"
+
 URL=""; OUT=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -114,17 +123,37 @@ DUR="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WORK/a.wav" 
 echo "==> ${DUR}s of audio (~$((DUR * 20 / 100))s expected)" >&2
 
 # Always chunk: it costs nothing on short files and is required past ~400s.
-ffmpeg -i "$WORK/a.wav" -f segment -segment_time "$CHUNK_SECS" \
-       -c copy "$WORK/part_%03d.wav" -y >/dev/null 2>&1
+# The segment muxer cannot overlap, so cut each chunk with its own seek. -ss
+# before -i is sample-accurate on PCM and does not scan the file.
+STEP=$((CHUNK_SECS - OVERLAP_SECS))
+[ "$STEP" -gt 0 ] || { echo "OVERLAP_SECS must be less than CHUNK_SECS" >&2; exit 1; }
 
-n=0; total=$(ls "$WORK"/part_*.wav | wc -l | tr -d ' ')
-for f in "$WORK"/part_*.wav; do
-  n=$((n + 1)); echo "    chunk $n/$total" >&2
-  parakeet-cli -m "$MODEL" -f "$f" -t "$THREADS" \
-               -otxt -of "${f%.wav}" --no-prints >/dev/null 2>&1
-  [ -s "${f%.wav}.txt" ] || echo "    warning: chunk $n produced no text" >&2
+i=0; start=0
+while :; do
+  ffmpeg -ss "$start" -t "$CHUNK_SECS" -i "$WORK/a.wav" -c copy \
+         "$(printf '%s/part_%03d.wav' "$WORK" "$i")" -y >/dev/null 2>&1
+  i=$((i + 1)); start=$((start + STEP))
+  # Stop once the chunk just written already reached the end. It covers up to
+  # start + OVERLAP_SECS, so anything shorter than that is a redundant sliver.
+  [ "$start" -lt "$DUR" ] && [ $((DUR - start)) -gt "$OVERLAP_SECS" ] || break
 done
 
-cat "$WORK"/part_*.txt > "$WORK/out.txt"
+MARK="[overlap: the following ~${OVERLAP_SECS}s of speech repeats the end of the previous section]"
+
+n=0; wrote=0; total=$i
+: > "$WORK/out.txt"
+for f in "$WORK"/part_*.wav; do
+  n=$((n + 1)); echo "    chunk $n/$total" >&2
+  # Never let one bad chunk abandon the good ones. Exit status is unreliable in
+  # both directions here: 0 with an empty file is the documented failure mode.
+  parakeet-cli -m "$MODEL" -f "$f" -t "$THREADS" \
+               -otxt -of "${f%.wav}" --no-prints >/dev/null 2>&1 || true
+  if [ ! -s "${f%.wav}.txt" ]; then
+    echo "    warning: chunk $n produced no text" >&2
+    continue
+  fi
+  [ "$wrote" -eq 0 ] || printf '\n%s\n' "$MARK" >> "$WORK/out.txt"
+  cat "${f%.wav}.txt" >> "$WORK/out.txt"; wrote=1
+done
 [ -s "$WORK/out.txt" ] || { echo "transcription produced no output" >&2; exit 1; }
 emit "$WORK/out.txt"
